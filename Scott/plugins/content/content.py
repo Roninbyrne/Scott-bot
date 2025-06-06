@@ -4,8 +4,9 @@ import string
 import smtplib
 from email.message import EmailMessage
 
-from pyrogram import Client, filters
+from pyrogram import filters
 from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
+from Scott import app
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
 from config import EMAIL_SENDER, EMAIL_PASSWORD
@@ -42,19 +43,19 @@ command_buttons = InlineKeyboardMarkup([
     ]
 ])
 
-@Client.on_callback_query(filters.regex("command_menu"))
+@app.on_callback_query(filters.regex("command_menu"))
 async def help_menu(client, callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         "📜 <b>Use the buttons below to Register or Login:</b>",
         reply_markup=command_buttons
     )
 
-@Client.on_callback_query(filters.regex("cancel_register"))
+@app.on_callback_query(filters.regex("cancel_register"))
 async def cancel_register(client, callback_query: CallbackQuery):
     await session_db.delete_one({"_id": callback_query.from_user.id})
     await callback_query.message.edit_text("❌ Registration/Login process cancelled.")
 
-@Client.on_callback_query(filters.regex("start_register"))
+@app.on_callback_query(filters.regex("start_register"))
 async def start_register(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     await session_db.update_one({"_id": user_id}, {"$set": {
@@ -63,7 +64,7 @@ async def start_register(client, callback_query: CallbackQuery):
     }}, upsert=True)
     await callback_query.message.edit_text("📧 Please enter your Gmail ID to begin registration.")
 
-@Client.on_callback_query(filters.regex("start_login"))
+@app.on_callback_query(filters.regex("start_login"))
 async def start_login(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     session = await session_db.find_one({"_id": user_id})
@@ -74,8 +75,8 @@ async def start_login(client, callback_query: CallbackQuery):
     }}, upsert=True)
     await callback_query.message.edit_text("🔐 Please enter your Login ID.")
 
-@Client.on_message(filters.private & filters.text & ~filters.command)
-async def handle_registration_flow(client: Client, message: Message):
+@app.on_message(filters.private & filters.text & ~filters.command)
+async def handle_registration_flow(client, message: Message):
     user_id = message.from_user.id
     text = message.text.strip()
     session = await session_db.find_one({"_id": user_id})
@@ -196,7 +197,7 @@ async def handle_registration_flow(client: Client, message: Message):
         }})
         return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse /logout to logout.")
 
-@Client.on_message(filters.command("logout") & filters.private)
+@app.on_message(filters.command("logout") & filters.private)
 async def logout_user(client, message: Message):
     user_id = message.from_user.id
     session = await session_db.find_one({"_id": user_id})
