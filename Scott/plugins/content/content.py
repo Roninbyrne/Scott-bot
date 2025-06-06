@@ -43,12 +43,28 @@ command_buttons = InlineKeyboardMarkup([
     ]
 ])
 
+logged_in_buttons = InlineKeyboardMarkup([
+    [InlineKeyboardButton("✅ Check Connected Channels", callback_data="check_channels")],
+    [
+        InlineKeyboardButton("🚪 Logout", callback_data="logout_user"),
+        InlineKeyboardButton("❌ Exit", callback_data="cancel_register")
+    ]
+])
+
 @app.on_callback_query(filters.regex("command_menu"))
 async def help_menu(client, callback_query: CallbackQuery):
-    await callback_query.message.edit_text(
-        "📜 <b>Use the buttons below to Register or Login:</b>",
-        reply_markup=command_buttons
-    )
+    user_id = callback_query.from_user.id
+    session = await session_db.find_one({"_id": user_id})
+    if session and session.get("logged_in"):
+        await callback_query.message.edit_text(
+            "✅ You are already logged in.",
+            reply_markup=logged_in_buttons
+        )
+    else:
+        await callback_query.message.edit_text(
+            "📜 <b>Use the buttons below to Register or Login:</b>",
+            reply_markup=command_buttons
+        )
 
 @app.on_callback_query(filters.regex("cancel_register"))
 async def cancel_register(client, callback_query: CallbackQuery):
@@ -75,12 +91,49 @@ async def start_login(client, callback_query: CallbackQuery):
     }}, upsert=True)
     await callback_query.message.edit_text("🔐 Please enter your Login ID.")
 
+@app.on_callback_query(filters.regex("check_channels"))
+async def check_connected_channels(client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    session = await session_db.find_one({"_id": user_id})
+    if not session or not session.get("logged_in"):
+        return await callback_query.message.edit_text("❌ You're not logged in.")
+
+    login_id = session.get("login_id")
+    private_id = session.get("private_channel")
+    public_id = session.get("public_channel")
+
+    private_group = await group_log_db.find_one({"_id": private_id})
+    public_group = await group_log_db.find_one({"_id": public_id})
+
+    private_name = private_group["title"] if private_group else "Unknown"
+    public_name = public_group["title"] if public_group else "Unknown"
+
+    await callback_query.message.edit_text(
+        f"🔐 <b>Login ID:</b> <code>{login_id}</code>\n"
+        f"🔒 <b>Private Channel:</b> {private_name} (`{private_id}`)\n"
+        f"📢 <b>Public Channel:</b> {public_name} (`{public_id}`)",
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("❌ Exit", callback_data="cancel_register"),
+                InlineKeyboardButton("🚪 Logout", callback_data="logout_user")
+            ]
+        ])
+    )
+
+@app.on_callback_query(filters.regex("logout_user"))
+async def logout_callback(client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    session = await session_db.find_one({"_id": user_id})
+    if not session or not session.get("logged_in"):
+        return await callback_query.answer("❌ You're not logged in.", show_alert=True)
+    await session_db.delete_one({"_id": user_id})
+    await callback_query.message.edit_text("✅ You've been logged out.")
+
 @app.on_message(filters.private & filters.text & ~filters.command([""]))
 async def handle_registration_flow(client, message: Message):
     user_id = message.from_user.id
     text = message.text.strip()
     session = await session_db.find_one({"_id": user_id})
-
     if not session:
         return
 
@@ -178,7 +231,7 @@ async def handle_registration_flow(client, message: Message):
             return await message.reply("⚠️ This Login ID is already used in another session. Ask them to logout.")
         already = await session_db.find_one({"_id": user_id})
         if already and already.get("login_id"):
-            return await message.reply("⚠️ You are already logged in. Use /logout to switch accounts.")
+            return await message.reply("⚠️ You are already logged in. Use the button to logout.")
         await session_db.update_one({"_id": user_id}, {"$set": {
             "step": "login_pass",
             "login_id": text
@@ -193,15 +246,8 @@ async def handle_registration_flow(client, message: Message):
         await session_db.update_one({"_id": user_id}, {"$set": {
             "email": data["email"],
             "logged_in": True,
-            "step": None
+            "step": None,
+            "private_channel": data["private_channel"],
+            "public_channel": data["public_channel"]
         }})
-        return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse /logout to logout.")
-
-@app.on_message(filters.command("logout") & filters.private)
-async def logout_user(client, message: Message):
-    user_id = message.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if not session or not session.get("logged_in"):
-        return await message.reply("❌ You're not logged in.")
-    await session_db.delete_one({"_id": user_id})
-    await message.reply("✅ You've been logged out.")
+        return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse the command menu to check status or logout.")
