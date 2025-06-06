@@ -15,179 +15,62 @@ from config import (
     EMAIL_SUBJECT_OTP,
     EMAIL_SUBJECT_FINAL,
     EMAIL_BODY_OTP,
-    EMAIL_BODY_FINAL,
-    EMAIL_SUBJECT_DELETE_OTP,
-    EMAIL_BODY_DELETE_OTP,
-    EMAIL_SUBJECT_DELETE_FINAL,
-    EMAIL_BODY_DELETE_FINAL,
+    EMAIL_BODY_FINAL
 )
 
 otp_cache = {}
 
 def generate_otp():
-    return str(random.randint(100000, 999999))
+    return ''.join(random.choices(string.digits, k=6))
 
 def generate_login_id():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-def generate_password():
-    return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
-
-async def send_otp_email(receiver_email: str, otp: str):
+async def send_otp_email(to_email, otp_code):
     msg = EmailMessage()
     msg["Subject"] = EMAIL_SUBJECT_OTP
     msg["From"] = EMAIL_SENDER
-    msg["To"] = receiver_email
-    msg.add_alternative(EMAIL_BODY_OTP.format(otp=otp), subtype="html")
+    msg["To"] = to_email
+    msg.set_content("HTML not supported", subtype='plain')
+    msg.add_alternative(EMAIL_BODY_OTP.format(otp=otp_code), subtype='html')
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
-async def send_delete_otp_email(receiver_email: str, otp: str):
-    msg = EmailMessage()
-    msg["Subject"] = EMAIL_SUBJECT_DELETE_OTP
-    msg["From"] = EMAIL_SENDER
-    msg["To"] = receiver_email
-    msg.add_alternative(EMAIL_BODY_DELETE_OTP.format(otp=otp), subtype="html")
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
-        smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
-        smtp.send_message(msg)
-
-async def send_final_email(receiver_email: str, login_id: str, password: str, private_id: int, public_id: int):
-    private = await group_log_db.find_one({"_id": private_id})
-    public = await group_log_db.find_one({"_id": public_id})
-    private_name = private["title"] if private else "Unknown"
-    public_name = public["title"] if public else "Unknown"
-    html = EMAIL_BODY_FINAL.format(
-        login_id=login_id,
-        password=password,
-        private_id=private_id,
-        public_id=public_id,
-        private_name=private_name,
-        public_name=public_name
-    )
+async def send_final_email(receiver_email, login_id, password, private_id, public_id):
     msg = EmailMessage()
     msg["Subject"] = EMAIL_SUBJECT_FINAL
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
-    msg.add_alternative(html, subtype="html")
+    user = await register_data_db.find_one({"_id": login_id})
+    name = user.get("name", "")
+    msg.set_content("HTML not supported", subtype='plain')
+    msg.add_alternative(EMAIL_BODY_FINAL.format(
+        name=name,
+        login_id=login_id,
+        password=password,
+        private_channel_id=private_id,
+        public_channel_id=public_id
+    ), subtype='html')
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
-async def send_delete_final_email(receiver_email: str, login_id: str):
+async def send_delete_final_email(receiver_email, login_id):
     msg = EmailMessage()
-    msg["Subject"] = EMAIL_SUBJECT_DELETE_FINAL
+    msg["Subject"] = "Your Account Has Been Deleted"
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
-    msg.add_alternative(EMAIL_BODY_DELETE_FINAL.format(login_id=login_id), subtype="html")
+    msg.set_content(f"Your data associated with Login ID {login_id} has been successfully deleted.")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
-
-command_buttons = InlineKeyboardMarkup([
-    [
-        InlineKeyboardButton("🔐 Register", callback_data="start_register"),
-        InlineKeyboardButton("🔓 Login", callback_data="start_login")
-    ],
-    [
-        InlineKeyboardButton("❌ Exit", callback_data="cancel_register")
-    ]
-])
-
-logged_in_buttons = InlineKeyboardMarkup([
-    [InlineKeyboardButton("🗑️ Delete Data Permanently", callback_data="delete_data_permanently")],
-    [InlineKeyboardButton("✅ Check Connected Channels", callback_data="check_channels")],
-    [
-        InlineKeyboardButton("🚪 Logout", callback_data="logout_user"),
-        InlineKeyboardButton("❌ Exit", callback_data="cancel_register")
-    ]
-])
-
-@app.on_callback_query(filters.regex("command_menu"))
-async def help_menu(client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if session and session.get("logged_in"):
-        await callback_query.message.edit_text(
-            "✅ You are already logged in.",
-            reply_markup=logged_in_buttons
-        )
-    else:
-        await callback_query.message.edit_text(
-            "📜 <b>Use the buttons below to Register or Login:</b>",
-            reply_markup=command_buttons
-        )
-
-@app.on_callback_query(filters.regex("cancel_register"))
-async def cancel_register(client, callback_query: CallbackQuery):
-    await callback_query.message.edit_reply_markup(reply_markup=None)
-    await callback_query.answer("❌ Menu closed.", show_alert=True)
 
 @app.on_callback_query(filters.regex("start_register"))
 async def start_register(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
-    await session_db.update_one({"_id": user_id}, {"$set": {
-        "step": "email",
-        "tries": 0
-    }}, upsert=True)
-    await callback_query.message.edit_text("📧 Please enter your Gmail ID to begin registration.")
-
-@app.on_callback_query(filters.regex("start_login"))
-async def start_login(client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if session and session.get("logged_in"):
-        return await callback_query.answer("⚠️ You are already logged in. Logout first.", show_alert=True)
-    await session_db.update_one({"_id": user_id}, {"$set": {
-        "step": "login_id"
-    }}, upsert=True)
-    await callback_query.message.edit_text("🔐 Please enter your Login ID.")
-
-@app.on_callback_query(filters.regex("check_channels"))
-async def check_connected_channels(client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if not session or not session.get("logged_in"):
-        return await callback_query.message.edit_text("❌ You're not logged in.")
-    login_id = session.get("login_id")
-    private_id = session.get("private_channel")
-    public_id = session.get("public_channel")
-    private_group = await group_log_db.find_one({"_id": private_id})
-    public_group = await group_log_db.find_one({"_id": public_id})
-    private_name = private_group["title"] if private_group else "Unknown"
-    public_name = public_group["title"] if public_group else "Unknown"
-    await callback_query.message.edit_text(
-        f"🔐 <b>Login ID:</b> <code>{login_id}</code>\n"
-        f"🔒 <b>Private Channel:</b> {private_name} (`{private_id}`)\n"
-        f"📢 <b>Public Channel:</b> {public_name} (`{public_id}`)",
-        reply_markup=logged_in_buttons
-    )
-
-@app.on_callback_query(filters.regex("logout_user"))
-async def logout_callback(client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if not session or not session.get("logged_in"):
-        return await callback_query.answer("❌ You're not logged in.", show_alert=True)
-    await session_db.delete_one({"_id": user_id})
-    await callback_query.message.edit_text("✅ You've been logged out.")
-
-@app.on_callback_query(filters.regex("delete_data_permanently"))
-async def delete_data_permanently(client, callback_query: CallbackQuery):
-    user_id = callback_query.from_user.id
-    session = await session_db.find_one({"_id": user_id})
-    if not session or not session.get("logged_in"):
-        return await callback_query.answer("❌ You're not logged in.", show_alert=True)
-    email = session.get("email")
-    otp = generate_otp()
-    otp_cache[user_id] = {"otp": otp, "count": 1, "expires": asyncio.get_event_loop().time() + 300, "type": "delete"}
-    await session_db.update_one({"_id": user_id}, {"$set": {"step": "delete_otp"}})
-    try:
-        await send_delete_otp_email(email, otp)
-        await callback_query.message.edit_text(f"📨 OTP sent to {email} for account deletion. Submit it here within 5 minutes.")
-    except Exception:
-        await callback_query.message.edit_text("❌ Failed to send email. Please try again later.")
+    await session_db.update_one({"_id": user_id}, {"$set": {"step": "full_name", "tries": 0}}, upsert=True)
+    await callback_query.message.edit_text("📝 Please enter your full name to begin registration.")
 
 @app.on_message(filters.private & filters.text & ~filters.command([""]))
 async def handle_registration_flow(client, message: Message):
@@ -198,15 +81,18 @@ async def handle_registration_flow(client, message: Message):
         return
     step = session.get("step")
 
-    if step == "email":
+    if step == "full_name":
+        if len(text) < 3:
+            return await message.reply("❌ Name must be at least 3 characters.")
+        await session_db.update_one({"_id": user_id}, {"$set": {"name": text, "step": "email"}})
+        return await message.reply("📧 Now enter your Gmail ID to proceed.")
+
+    elif step == "email":
         if not text.endswith("@gmail.com"):
             return await message.reply("❌ Please enter a valid Gmail ID.")
         otp = generate_otp()
         otp_cache[user_id] = {"otp": otp, "count": 1, "expires": asyncio.get_event_loop().time() + 300, "type": "register"}
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "email": text,
-            "step": "otp"
-        }})
+        await session_db.update_one({"_id": user_id}, {"$set": {"email": text, "step": "otp"}})
         try:
             await send_otp_email(text, otp)
             await message.reply(f"📨 OTP sent to {text}. Check your Gmail inbox/spam.\n\n🕔 It will expire in 5 minutes.\n\nSend the OTP here.")
@@ -229,10 +115,7 @@ async def handle_registration_flow(client, message: Message):
                 return await message.reply("❌ Too many wrong attempts. Registration cancelled.")
             return await message.reply("❌ Incorrect OTP. Try again.")
         login_id = generate_login_id()
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "step": "ask_channels",
-            "login_id": login_id
-        }})
+        await session_db.update_one({"_id": user_id}, {"$set": {"step": "ask_channels", "login_id": login_id}})
         otp_cache.pop(user_id, None)
         return await message.reply("✅ OTP verified.\n\nSend the **Private Channel ID** (bot must be added).")
 
@@ -244,10 +127,7 @@ async def handle_registration_flow(client, message: Message):
         exists = await group_log_db.find_one({"_id": private_channel})
         if not exists:
             return await message.reply("❌ Bot not found in this private channel.")
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "private_channel": private_channel,
-            "step": "ask_public_channel"
-        }})
+        await session_db.update_one({"_id": user_id}, {"$set": {"private_channel": private_channel, "step": "ask_public_channel"}})
         return await message.reply("✅ Private channel verified.\nNow send **Public Channel ID**.")
 
     elif step == "ask_public_channel" and "public_channel" not in session:
@@ -258,10 +138,7 @@ async def handle_registration_flow(client, message: Message):
         exists = await group_log_db.find_one({"_id": public_channel})
         if not exists:
             return await message.reply("❌ Bot not found in this public channel.")
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "public_channel": public_channel,
-            "step": "ask_password"
-        }})
+        await session_db.update_one({"_id": user_id}, {"$set": {"public_channel": public_channel, "step": "ask_password"}})
         return await message.reply("✅ Public channel verified.\nNow send a **8-digit password** to complete registration.")
 
     elif step == "ask_password":
@@ -271,6 +148,7 @@ async def handle_registration_flow(client, message: Message):
         await register_data_db.insert_one({
             "_id": login_id,
             "user_id": user_id,
+            "name": session.get("name", ""),
             "email": session["email"],
             "private_channel": session["private_channel"],
             "public_channel": session["public_channel"],
@@ -285,7 +163,7 @@ async def handle_registration_flow(client, message: Message):
         )
         await session_db.delete_one({"_id": user_id})
         await message.reply(
-            f"✅ Registration Completed!\n\n<b>Login ID:</b> <code>{login_id}</code>\n<b>Password:</b> <code>{text}</code>"
+            f"✅ Registration Completed!\n\n<b>Name:</b> {session.get('name', 'Unknown')}\n<b>Login ID:</b> <code>{login_id}</code>\n<b>Password:</b> <code>{text}</code>"
         )
 
     elif step == "login_id":
@@ -295,10 +173,7 @@ async def handle_registration_flow(client, message: Message):
         already = await session_db.find_one({"_id": user_id})
         if already and already.get("logged_in"):
             return await message.reply("⚠️ You are already logged in. Use the button to logout.")
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "step": "login_pass",
-            "temp_login_id": text
-        }})
+        await session_db.update_one({"_id": user_id}, {"$set": {"step": "login_pass", "temp_login_id": text}})
         return await message.reply("🔑 Now enter your password:")
 
     elif step == "login_pass":
@@ -315,6 +190,7 @@ async def handle_registration_flow(client, message: Message):
             return await message.reply("⚠️ This Login ID is already used in another session. Ask them to logout.")
         await session_db.update_one({"_id": user_id}, {
             "$set": {
+                "name": data.get("name", ""),
                 "email": data["email"],
                 "logged_in": True,
                 "step": None,
@@ -324,7 +200,7 @@ async def handle_registration_flow(client, message: Message):
             },
             "$unset": {"temp_login_id": ""}
         })
-        return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse the command menu to check status or logout.")
+        return await message.reply(f"✅ Logged in as <b>{data.get('name', 'User')}</b> (<code>{login_id}</code>).\nUse the command menu to check status or logout.")
 
     elif step == "delete_otp":
         cached = otp_cache.get(user_id)
