@@ -12,7 +12,7 @@ API_ID = 20948356
 API_HASH = "6b202043d2b3c4db3f4ebefb06f2df12"
 
 # Bot token from @BotFather
-BOT_TOKEN = "8118270568:AAH9fPWU10vGDMIzjhPhs5uwxqgCSLq5KDo"
+BOT_TOKEN = "7964387907:AAHBMgRfy0Un3hHIdFbOcQl7NyVzYyCkJd0"
 
 # MongoDB connection string for storing user data, game state, etc.
 
@@ -37,9 +37,6 @@ LOGGER_ID = -1002059639505
 
 # Video or photo for /stats 
 STATS_VIDEO = "https://unitedcamps.in/Images/file_5250.jpg"
-
-# Global ban channel ID where bot sends important gban and ungban info
-GBAN_LOGS = -1002059639505
 
 # Owner ID for specific use
 OWNER_ID = 7394132959
