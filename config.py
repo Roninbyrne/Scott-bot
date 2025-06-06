@@ -68,7 +68,7 @@ EMAIL_BODY_OTP = """
   <body style="font-family: Arial, sans-serif; background-color:#f9f9f9; padding:20px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
       <h2 style="color:#2E8B57;">🔐 OTP Verification</h2>
-      <p>Hello,</p>
+      <p>Hello <b>{name}</b>,</p>
       <p>You requested an OTP for verification. Please use the following code to continue your registration:</p>
 
       <div style="background-color: #f0f8ff; padding: 15px; border-radius: 8px; text-align: center;">
@@ -94,7 +94,7 @@ EMAIL_BODY_FINAL = """
   <body style="font-family: Arial, sans-serif; background-color:#f9f9f9; padding:20px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
       <h2 style="color:#2E8B57;">🎉 Registration Successful</h2>
-      <p>Hello,</p>
+      <p>Hello <b>{name}</b>,</p>
       <p>Your registration has been completed successfully. Below are your credentials and channel details:</p>
 
       <ul style="list-style-type: none; padding: 0;">
@@ -122,6 +122,7 @@ EMAIL_BODY_DELETE_OTP = """
   <body style="font-family: Arial, sans-serif; background-color:#fff3f3; padding:20px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(255,0,0,0.1);">
       <h2 style="color:#cc0000;">⚠️ Account Deletion Request</h2>
+      <p>Hello <b>{name}</b>,</p>
       <p>You have requested to <b>permanently delete</b> your account data associated with our Telegram bot.</p>
       <p>To confirm this request, please use the following OTP:</p>
 
@@ -151,7 +152,7 @@ EMAIL_BODY_DELETE_FINAL = """
   <body style="font-family: Arial, sans-serif; background-color:#f9fff9; padding:20px;">
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,128,0,0.1);">
       <h2 style="color: #2e8b57;">✅ Account Deletion Successful</h2>
-      <p>Hello,</p>
+      <p>Hello <b>{name}</b>,</p>
       <p>Your account associated with the following login ID has been <b>permanently deleted</b> from our system:</p>
 
       <p><b>🆔 Login ID:</b> <code>{login_id}</code></p>
