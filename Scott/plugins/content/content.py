@@ -16,6 +16,10 @@ from config import (
     EMAIL_SUBJECT_FINAL,
     EMAIL_BODY_OTP,
     EMAIL_BODY_FINAL,
+    EMAIL_SUBJECT_DELETE_OTP,
+    EMAIL_BODY_DELETE_OTP,
+    EMAIL_SUBJECT_DELETE_FINAL,
+    EMAIL_BODY_DELETE_FINAL,
 )
 
 otp_cache = {}
@@ -35,6 +39,16 @@ async def send_otp_email(receiver_email: str, otp: str):
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
     msg.add_alternative(EMAIL_BODY_OTP.format(otp=otp), subtype="html")
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
+async def send_delete_otp_email(receiver_email: str, otp: str):
+    msg = EmailMessage()
+    msg["Subject"] = EMAIL_SUBJECT_DELETE_OTP
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = receiver_email
+    msg.add_alternative(EMAIL_BODY_DELETE_OTP.format(otp=otp), subtype="html")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
@@ -61,6 +75,16 @@ async def send_final_email(receiver_email: str, login_id: str, password: str, pr
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
 
+async def send_delete_final_email(receiver_email: str, login_id: str):
+    msg = EmailMessage()
+    msg["Subject"] = EMAIL_SUBJECT_DELETE_FINAL
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = receiver_email
+    msg.add_alternative(EMAIL_BODY_DELETE_FINAL.format(login_id=login_id), subtype="html")
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
 command_buttons = InlineKeyboardMarkup([
     [
         InlineKeyboardButton("🔐 Register", callback_data="start_register"),
@@ -72,6 +96,7 @@ command_buttons = InlineKeyboardMarkup([
 ])
 
 logged_in_buttons = InlineKeyboardMarkup([
+    [InlineKeyboardButton("🗑️ Delete Data Permanently", callback_data="delete_data_permanently")],
     [InlineKeyboardButton("✅ Check Connected Channels", callback_data="check_channels")],
     [
         InlineKeyboardButton("🚪 Logout", callback_data="logout_user"),
@@ -136,12 +161,7 @@ async def check_connected_channels(client, callback_query: CallbackQuery):
         f"🔐 <b>Login ID:</b> <code>{login_id}</code>\n"
         f"🔒 <b>Private Channel:</b> {private_name} (`{private_id}`)\n"
         f"📢 <b>Public Channel:</b> {public_name} (`{public_id}`)",
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("❌ Exit", callback_data="cancel_register"),
-                InlineKeyboardButton("🚪 Logout", callback_data="logout_user")
-            ]
-        ])
+        reply_markup=logged_in_buttons
     )
 
 @app.on_callback_query(filters.regex("logout_user"))
@@ -152,6 +172,22 @@ async def logout_callback(client, callback_query: CallbackQuery):
         return await callback_query.answer("❌ You're not logged in.", show_alert=True)
     await session_db.delete_one({"_id": user_id})
     await callback_query.message.edit_text("✅ You've been logged out.")
+
+@app.on_callback_query(filters.regex("delete_data_permanently"))
+async def delete_data_permanently(client, callback_query: CallbackQuery):
+    user_id = callback_query.from_user.id
+    session = await session_db.find_one({"_id": user_id})
+    if not session or not session.get("logged_in"):
+        return await callback_query.answer("❌ You're not logged in.", show_alert=True)
+    email = session.get("email")
+    otp = generate_otp()
+    otp_cache[user_id] = {"otp": otp, "count": 1, "expires": asyncio.get_event_loop().time() + 300, "type": "delete"}
+    await session_db.update_one({"_id": user_id}, {"$set": {"step": "delete_otp"}})
+    try:
+        await send_delete_otp_email(email, otp)
+        await callback_query.message.edit_text(f"📨 OTP sent to {email} for account deletion. Submit it here within 5 minutes.")
+    except Exception:
+        await callback_query.message.edit_text("❌ Failed to send email. Please try again later.")
 
 @app.on_message(filters.private & filters.text & ~filters.command([""]))
 async def handle_registration_flow(client, message: Message):
@@ -166,7 +202,7 @@ async def handle_registration_flow(client, message: Message):
         if not text.endswith("@gmail.com"):
             return await message.reply("❌ Please enter a valid Gmail ID.")
         otp = generate_otp()
-        otp_cache[user_id] = {"otp": otp, "count": 1, "expires": asyncio.get_event_loop().time() + 300}
+        otp_cache[user_id] = {"otp": otp, "count": 1, "expires": asyncio.get_event_loop().time() + 300, "type": "register"}
         await session_db.update_one({"_id": user_id}, {"$set": {
             "email": text,
             "step": "otp"
@@ -289,3 +325,24 @@ async def handle_registration_flow(client, message: Message):
             "$unset": {"temp_login_id": ""}
         })
         return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse the command menu to check status or logout.")
+
+    elif step == "delete_otp":
+        cached = otp_cache.get(user_id)
+        if not cached or asyncio.get_event_loop().time() > cached["expires"] or cached.get("type") != "delete":
+            await session_db.update_one({"_id": user_id}, {"$set": {"step": None}})
+            otp_cache.pop(user_id, None)
+            return await message.reply("❌ OTP expired or invalid. Try again from menu.")
+        if cached["otp"] != text:
+            cached["count"] += 1
+            if cached["count"] > 2:
+                await session_db.update_one({"_id": user_id}, {"$set": {"step": None}})
+                otp_cache.pop(user_id, None)
+                return await message.reply("❌ Too many wrong attempts. Try again from menu.")
+            return await message.reply("❌ Incorrect OTP. Try again.")
+        login_id = session.get("login_id")
+        email = session.get("email")
+        await send_delete_final_email(email, login_id)
+        await session_db.delete_one({"_id": user_id})
+        await register_data_db.delete_one({"_id": login_id})
+        otp_cache.pop(user_id, None)
+        return await message.reply("✅ Your data has been permanently deleted. Goodbye!")
