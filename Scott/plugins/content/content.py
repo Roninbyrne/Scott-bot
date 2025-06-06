@@ -9,8 +9,6 @@ from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineK
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
 from Scott.plugins.content.content import command_text
-from Scott.utils.otp import otp_cache
-from Scott.utils.random_id import generate_login_id
 from config import EMAIL_SENDER, EMAIL_PASSWORD
 
 otp_cache = {}
