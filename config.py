@@ -107,3 +107,49 @@ EMAIL_BODY_FINAL = """
   </body>
 </html>
 """
+
+EMAIL_SUBJECT_DELETE_OTP = "⚠️ Confirm Your Account Deletion - Team Scott"
+EMAIL_BODY_DELETE_OTP = """
+<html>
+  <body style="font-family: Arial, sans-serif; background-color:#fff3f3; padding:20px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(255,0,0,0.1);">
+      <h2 style="color:#cc0000;">⚠️ Account Deletion Request</h2>
+      <p>You have requested to <b>permanently delete</b> your account data associated with our Telegram bot.</p>
+      <p>To confirm this request, please use the following OTP:</p>
+
+      <div style="background-color: #fff0f0; padding: 15px; border-radius: 8px; text-align: center;">
+        <p style="font-size: 20px;"><b>🔐 OTP:</b></p>
+        <p style="font-size: 28px; color: #cc0000;"><code>{otp}</code></p>
+      </div>
+
+      <p>This OTP is valid for <b>5 minutes</b>.</p>
+      <p><b>Warning:</b> Once confirmed, all your saved credentials, login ID, email, and associated channel data will be <span style="color: red;">permanently removed</span> from our system. This action <b>cannot be undone</b>.</p>
+
+      <p>If you did not make this request, simply ignore this email and your data will remain safe.</p>
+
+      <p style="color: #555;">Regards,<br><b>Team Scott</b></p>
+    </div>
+  </body>
+</html>
+"""
+
+EMAIL_SUBJECT_DELETE_FINAL = "✅ Account Successfully Deleted - Team Scott"
+EMAIL_BODY_DELETE_FINAL = """
+<html>
+  <body style="font-family: Arial, sans-serif; background-color:#f9fff9; padding:20px;">
+    <div style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,128,0,0.1);">
+      <h2 style="color: #2e8b57;">✅ Account Deletion Successful</h2>
+      <p>Hello,</p>
+      <p>Your account associated with the following login ID has been <b>permanently deleted</b> from our system:</p>
+
+      <p><b>🆔 Login ID:</b> <code>{login_id}</code></p>
+
+      <p>All stored credentials, email information, and linked channel data have been removed successfully.</p>
+
+      <p>We’re sorry to see you go. You’re always welcome to join again anytime in the future.</p>
+
+      <p style="color: #555;">Goodbye for now,<br><b>Team Scott</b></p>
+    </div>
+  </body>
+</html>
+"""
