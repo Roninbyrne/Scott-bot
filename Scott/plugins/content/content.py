@@ -9,7 +9,14 @@ from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineK
 from Scott import app
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
-from config import EMAIL_SENDER, EMAIL_PASSWORD
+from config import (
+    EMAIL_SENDER,
+    EMAIL_PASSWORD,
+    EMAIL_SUBJECT_OTP,
+    EMAIL_SUBJECT_FINAL,
+    EMAIL_BODY_OTP,
+    EMAIL_BODY_FINAL,
+)
 
 otp_cache = {}
 
@@ -24,10 +31,34 @@ def generate_password():
 
 async def send_otp_email(receiver_email: str, otp: str):
     msg = EmailMessage()
-    msg["Subject"] = "Your OTP Verification Code"
+    msg["Subject"] = EMAIL_SUBJECT_OTP
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
     msg.set_content(f"Your OTP is: {otp}\nIt will expire in 5 minutes.")
+    msg.add_alternative(EMAIL_BODY_OTP.format(otp=otp), subtype="html")
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        smtp.send_message(msg)
+
+async def send_final_email(receiver_email: str, login_id: str, password: str, private_id: int, public_id: int):
+    private = await group_log_db.find_one({"_id": private_id})
+    public = await group_log_db.find_one({"_id": public_id})
+    private_name = private["title"] if private else "Unknown"
+    public_name = public["title"] if public else "Unknown"
+    html = EMAIL_BODY_FINAL.format(
+        login_id=login_id,
+        password=password,
+        private_id=private_id,
+        public_id=public_id,
+        private_name=private_name,
+        public_name=public_name
+    )
+    msg = EmailMessage()
+    msg["Subject"] = EMAIL_SUBJECT_FINAL
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = receiver_email
+    msg.set_content("Your registration details.")
+    msg.add_alternative(html, subtype="html")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
@@ -211,6 +242,13 @@ async def handle_registration_flow(client, message: Message):
             "public_channel": session["public_channel"],
             "password": text
         })
+        await send_final_email(
+            receiver_email=session["email"],
+            login_id=login_id,
+            password=text,
+            private_id=session["private_channel"],
+            public_id=session["public_channel"]
+        )
         await session_db.delete_one({"_id": user_id})
         await message.reply(
             f"✅ Registration Completed!\n\n<b>Login ID:</b> <code>{login_id}</code>\n<b>Password:</b> <code>{text}</code>"
