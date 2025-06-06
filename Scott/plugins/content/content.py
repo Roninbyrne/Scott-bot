@@ -39,7 +39,7 @@ command_buttons = InlineKeyboardMarkup([
         InlineKeyboardButton("🔓 Login", callback_data="start_login")
     ],
     [
-        InlineKeyboardButton("❌ Cancel", callback_data="cancel_register")
+        InlineKeyboardButton("❌ Exit", callback_data="cancel_register")
     ]
 ])
 
@@ -68,8 +68,8 @@ async def help_menu(client, callback_query: CallbackQuery):
 
 @app.on_callback_query(filters.regex("cancel_register"))
 async def cancel_register(client, callback_query: CallbackQuery):
-    await session_db.delete_one({"_id": callback_query.from_user.id})
-    await callback_query.message.edit_text("❌ Registration/Login process cancelled.")
+    await callback_query.message.edit_reply_markup(reply_markup=None)
+    await callback_query.answer("❌ Menu closed.", show_alert=True)
 
 @app.on_callback_query(filters.regex("start_register"))
 async def start_register(client, callback_query: CallbackQuery):
