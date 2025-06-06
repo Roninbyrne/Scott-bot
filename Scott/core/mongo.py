@@ -1,3 +1,4 @@
+
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import MONGO_DB_URI
 from ..logging import LOGGER
@@ -14,6 +15,8 @@ try:
     global_userinfo_db = db["user_info"]
     register_data_db = db["register_data"]
     session_db = db["session_data"]
+    user_states_collection = db["user_states"]
+    video_channels_collection = db["video_channels"]
     mongodb = db
 
     logger.info("Connected to your Mongo Database.")
