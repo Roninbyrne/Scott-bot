@@ -8,7 +8,6 @@ from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
-from Scott.plugins.content.content import command_text
 from config import EMAIL_SENDER, EMAIL_PASSWORD
 
 otp_cache = {}
@@ -46,7 +45,7 @@ command_buttons = InlineKeyboardMarkup([
 @Client.on_callback_query(filters.regex("command_menu"))
 async def help_menu(client, callback_query: CallbackQuery):
     await callback_query.message.edit_text(
-        command_text,
+        "📜 <b>Use the buttons below to Register or Login:</b>",
         reply_markup=command_buttons
     )
 
