@@ -32,7 +32,7 @@ command_buttons = InlineKeyboardMarkup([
     ]
 ])
 
-@Client.on_callback_query(filters.regex("help_menu"))
+@Client.on_callback_query(filters.regex("command_menu"))
 async def help_menu(client, callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         command_text,
