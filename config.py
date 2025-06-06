@@ -14,6 +14,9 @@ API_HASH = "6b202043d2b3c4db3f4ebefb06f2df12"
 # Bot token from @BotFather
 BOT_TOKEN = "7964387907:AAHBMgRfy0Un3hHIdFbOcQl7NyVzYyCkJd0"
 
+EMAIL_SENDER = "bhabyaprakash01@gmail.com"
+EMAIL_PASSWORD = "zudlkntnqcnlitbh"
+
 # MongoDB connection string for storing user data, game state, etc.
 
 MONGO_DB_URI = "mongodb+srv://Combobot:Combobot@combobot.4jbtg.mongodb.net/?retryWrites=true&w=majority&appName=Combobot"
