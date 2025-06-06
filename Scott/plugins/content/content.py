@@ -28,7 +28,6 @@ async def send_otp_email(receiver_email: str, otp: str):
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
     msg.set_content(f"Your OTP is: {otp}\nIt will expire in 5 minutes.")
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
         smtp.send_message(msg)
@@ -84,7 +83,7 @@ async def start_register(client, callback_query: CallbackQuery):
 async def start_login(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     session = await session_db.find_one({"_id": user_id})
-    if session and session.get("login_id"):
+    if session and session.get("logged_in"):
         return await callback_query.answer("⚠️ You are already logged in. Logout first.", show_alert=True)
     await session_db.update_one({"_id": user_id}, {"$set": {
         "step": "login_id"
@@ -97,17 +96,13 @@ async def check_connected_channels(client, callback_query: CallbackQuery):
     session = await session_db.find_one({"_id": user_id})
     if not session or not session.get("logged_in"):
         return await callback_query.message.edit_text("❌ You're not logged in.")
-
     login_id = session.get("login_id")
     private_id = session.get("private_channel")
     public_id = session.get("public_channel")
-
     private_group = await group_log_db.find_one({"_id": private_id})
     public_group = await group_log_db.find_one({"_id": public_id})
-
     private_name = private_group["title"] if private_group else "Unknown"
     public_name = public_group["title"] if public_group else "Unknown"
-
     await callback_query.message.edit_text(
         f"🔐 <b>Login ID:</b> <code>{login_id}</code>\n"
         f"🔒 <b>Private Channel:</b> {private_name} (`{private_id}`)\n"
@@ -136,7 +131,6 @@ async def handle_registration_flow(client, message: Message):
     session = await session_db.find_one({"_id": user_id})
     if not session:
         return
-
     step = session.get("step")
 
     if step == "email":
@@ -226,28 +220,36 @@ async def handle_registration_flow(client, message: Message):
         data = await register_data_db.find_one({"_id": text})
         if not data:
             return await message.reply("❌ Login ID not found.")
-        existing = await session_db.find_one({"login_id": text})
-        if existing and existing["_id"] != user_id:
-            return await message.reply("⚠️ This Login ID is already used in another session. Ask them to logout.")
         already = await session_db.find_one({"_id": user_id})
-        if already and already.get("login_id"):
+        if already and already.get("logged_in"):
             return await message.reply("⚠️ You are already logged in. Use the button to logout.")
         await session_db.update_one({"_id": user_id}, {"$set": {
             "step": "login_pass",
-            "login_id": text
+            "temp_login_id": text
         }})
         return await message.reply("🔑 Now enter your password:")
 
     elif step == "login_pass":
-        login_id = session["login_id"]
+        login_id = session.get("temp_login_id")
         data = await register_data_db.find_one({"_id": login_id})
         if not data or data["password"] != text:
             return await message.reply("❌ Incorrect password.")
-        await session_db.update_one({"_id": user_id}, {"$set": {
-            "email": data["email"],
+        existing = await session_db.find_one({
+            "login_id": login_id,
             "logged_in": True,
-            "step": None,
-            "private_channel": data["private_channel"],
-            "public_channel": data["public_channel"]
-        }})
+            "_id": {"$ne": user_id}
+        })
+        if existing:
+            return await message.reply("⚠️ This Login ID is already used in another session. Ask them to logout.")
+        await session_db.update_one({"_id": user_id}, {
+            "$set": {
+                "email": data["email"],
+                "logged_in": True,
+                "step": None,
+                "login_id": login_id,
+                "private_channel": data["private_channel"],
+                "public_channel": data["public_channel"]
+            },
+            "$unset": {"temp_login_id": ""}
+        })
         return await message.reply(f"✅ Logged in as <code>{login_id}</code>.\nUse the command menu to check status or logout.")
