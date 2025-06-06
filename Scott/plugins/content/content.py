@@ -75,7 +75,7 @@ async def start_login(client, callback_query: CallbackQuery):
     }}, upsert=True)
     await callback_query.message.edit_text("🔐 Please enter your Login ID.")
 
-@app.on_message(filters.private & filters.text & ~filters.command)
+@app.on_message(filters.private & filters.text & ~filters.command())
 async def handle_registration_flow(client, message: Message):
     user_id = message.from_user.id
     text = message.text.strip()
