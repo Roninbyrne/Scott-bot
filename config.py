@@ -49,8 +49,8 @@ HEROKU_APP_NAME = getenv("HEROKU_APP_NAME")
 HEROKU_API_KEY = getenv("HEROKU_API_KEY")
 
 # GitHub repo for pulling bot updates
-UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/Roninbyrne/Elapsed")
-UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "main")
+UPSTREAM_REPO = getenv("UPSTREAM_REPO", "https://github.com/Roninbyrne/Scott-bot")
+UPSTREAM_BRANCH = getenv("UPSTREAM_BRANCH", "master")
 GIT_TOKEN = getenv("git_token", None)  # Optional GitHub token for private repo access
 
 # Support links
