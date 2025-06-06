@@ -34,7 +34,6 @@ async def send_otp_email(receiver_email: str, otp: str):
     msg["Subject"] = EMAIL_SUBJECT_OTP
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
-    msg.set_content(f"Your OTP is: {otp}\nIt will expire in 5 minutes.")
     msg.add_alternative(EMAIL_BODY_OTP.format(otp=otp), subtype="html")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
@@ -57,7 +56,6 @@ async def send_final_email(receiver_email: str, login_id: str, password: str, pr
     msg["Subject"] = EMAIL_SUBJECT_FINAL
     msg["From"] = EMAIL_SENDER
     msg["To"] = receiver_email
-    msg.set_content("Your registration details.")
     msg.add_alternative(html, subtype="html")
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
