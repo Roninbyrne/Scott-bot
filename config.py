@@ -78,6 +78,10 @@ EMAIL_BODY_OTP = """
 
       <p>This OTP is valid for <b>5 minutes</b>. Please do not share it with anyone.</p>
 
+      <p style="color: #999; font-size: 13px; margin-top: 30px;">
+        This is an automated message sent by our bot. Please do not reply directly to this email. For any queries, contact us at <a href="mailto:scottbothelpdesk@gmail.com">scottbothelpdesk@gmail.com</a>.
+      </p>
+
       <p>Thank you for choosing Team Scott!</p>
       <p style="color: #555;">Best regards,<br><b>Team Scott</b></p>
     </div>
@@ -101,6 +105,10 @@ EMAIL_BODY_FINAL = """
       </ul>
 
       <p>Keep this information safe and secure. Do not share it with anyone.</p>
+
+      <p style="color: #999; font-size: 13px; margin-top: 30px;">
+        This is an automated message sent by our bot. Please do not reply directly to this email. For any queries, contact us at <a href="mailto:scottbothelpdesk@gmail.com">scottbothelpdesk@gmail.com</a>.
+      </p>
 
       <p style="color: #555;">Best regards,<br><b>Team Scott</b></p>
     </div>
@@ -127,6 +135,10 @@ EMAIL_BODY_DELETE_OTP = """
 
       <p>If you did not make this request, simply ignore this email and your data will remain safe.</p>
 
+      <p style="color: #999; font-size: 13px; margin-top: 30px;">
+        This is an automated message sent by our bot. Please do not reply directly to this email. For any queries, contact us at <a href="mailto:scottbothelpdesk@gmail.com">scottbothelpdesk@gmail.com</a>.
+      </p>
+
       <p style="color: #555;">Regards,<br><b>Team Scott</b></p>
     </div>
   </body>
@@ -147,6 +159,10 @@ EMAIL_BODY_DELETE_FINAL = """
       <p>All stored credentials, email information, and linked channel data have been removed successfully.</p>
 
       <p>We’re sorry to see you go. You’re always welcome to join again anytime in the future.</p>
+
+      <p style="color: #999; font-size: 13px; margin-top: 30px;">
+        This is an automated message sent by our bot. Please do not reply directly to this email. For any queries, contact us at <a href="mailto:scottbothelpdesk@gmail.com">scottbothelpdesk@gmail.com</a>.
+      </p>
 
       <p style="color: #555;">Goodbye for now,<br><b>Team Scott</b></p>
     </div>
