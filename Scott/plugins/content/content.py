@@ -1,15 +1,17 @@
 import asyncio
 import random
 import string
+import smtplib
+from email.message import EmailMessage
 
 from pyrogram import Client, filters
 from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
 from Scott.plugins.content.content import command_text
-from Scott.utils.otp import generate_otp, verify_otp, otp_cache
+from Scott.utils.otp import otp_cache
 from Scott.utils.random_id import generate_login_id
-
+from config import EMAIL_SENDER, EMAIL_PASSWORD
 
 otp_cache = {}
 
@@ -21,6 +23,17 @@ def generate_login_id():
 
 def generate_password():
     return ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+
+async def send_otp_email(receiver_email: str, otp: str):
+    msg = EmailMessage()
+    msg["Subject"] = "Your OTP Verification Code"
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = receiver_email
+    msg.set_content(f"Your OTP is: {otp}\nIt will expire in 5 minutes.")
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        smtp.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        smtp.send_message(msg)
 
 command_buttons = InlineKeyboardMarkup([
     [
@@ -84,7 +97,13 @@ async def handle_registration_flow(client: Client, message: Message):
             "email": text,
             "step": "otp"
         }})
-        await message.reply(f"📨 OTP sent to {text}. (Simulated)\n\n🕔 It will expire in 5 minutes.\n\nSend the OTP here.")
+        try:
+            await send_otp_email(text, otp)
+            await message.reply(f"📨 OTP sent to {text}. Check your Gmail inbox/spam.\n\n🕔 It will expire in 5 minutes.\n\nSend the OTP here.")
+        except Exception:
+            await message.reply("❌ Failed to send email. Check if the Gmail or App Password is correct.")
+            await session_db.delete_one({"_id": user_id})
+            otp_cache.pop(user_id, None)
 
     elif step == "otp":
         cached = otp_cache.get(user_id)
