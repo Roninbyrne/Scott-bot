@@ -9,6 +9,7 @@ from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineK
 from Scott import app
 
 from Scott.core.mongo import session_db, register_data_db, group_log_db
+from Scott.plugins.content.search import in_posting_flow
 from config import (
     EMAIL_SENDER,
     EMAIL_PASSWORD,
