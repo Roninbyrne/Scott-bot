@@ -151,8 +151,13 @@ async def handle_photo_messages(client, message: Message):
 
 async def post_video_to_channel(public_channel, video_id, description, cover_photo):
     button = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("✯ ᴅᴏᴡɴʟᴏᴀᴅ ✯", callback_data=video_id)]]
-    )
+    [[
+        InlineKeyboardButton(
+            "✯ ᴅᴏᴡɴʟᴏᴀᴅ ✯",
+            url=f"https://t.me/{app.me.username}?start=vid_{video_id}"
+        )
+    ]]
+)
     caption_text = (
         f"{description}\n\n"
         f"❱ ꜱᴜᴘᴘᴏʀᴛ ᴄʜᴀᴛ"
