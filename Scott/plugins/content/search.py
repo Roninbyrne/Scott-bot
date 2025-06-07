@@ -1,6 +1,7 @@
 from pyrogram import filters
 from pyrogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.filters import Filter
+from pyrogram.enums import ParseMode
 from Scott import app
 from Scott.core.mongo import session_db, register_data_db, user_states_collection, video_channels_collection
 import asyncio
@@ -162,7 +163,7 @@ async def post_video_to_channel(public_channel, video_id, description, cover_pho
         photo=cover_photo,
         caption=caption_text,
         reply_markup=button,
-        parse_mode="html"
+        parse_mode=ParseMode.HTML
     )
 
 @app.on_callback_query()
