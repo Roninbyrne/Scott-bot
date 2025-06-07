@@ -4,6 +4,7 @@ from pyrogram.filters import Filter
 from pyrogram.enums import ParseMode
 from Scott import app
 from Scott.core.mongo import session_db, register_data_db, user_states_collection, video_channels_collection
+from Scott.plugins.content.search import in_posting_flow
 import asyncio
 import logging
 
