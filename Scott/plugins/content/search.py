@@ -1,9 +1,21 @@
 from pyrogram import filters
 from pyrogram.types import CallbackQuery, Message
+from pyrogram.filters import Filter
 from Scott import app
 from Scott.core.mongo import session_db, register_data_db
 
 user_states = {}
+
+class InPostingFlow(Filter):
+    def __init__(self):
+        super().__init__()
+
+    async def __call__(self, _, __, message):
+        user_id = message.from_user.id
+        state = user_states.get(user_id)
+        return state and state.get("step") in ["awaiting_description", "awaiting_photo"]
+
+in_posting_flow = InPostingFlow()
 
 @app.on_callback_query(filters.regex("search_user_status"))
 async def search_user_status(client, callback_query: CallbackQuery):
@@ -51,32 +63,28 @@ async def search_user_status(client, callback_query: CallbackQuery):
             "public_channel": public_channel
         }
 
-@app.on_message(filters.private & filters.text)
+@app.on_message(filters.private & filters.text & in_posting_flow)
 async def handle_description(client, message: Message):
     user_id = message.from_user.id
     state = user_states.get(user_id)
 
-    if state and state.get("step") == "awaiting_description":
-        user_states[user_id]["description"] = message.text
-        user_states[user_id]["step"] = "awaiting_photo"
+    if state["step"] == "awaiting_description":
+        state["description"] = message.text
+        state["step"] = "awaiting_photo"
         await message.reply("📷 Now, please send the cover photo.")
-    elif state and state.get("step") == "awaiting_photo":
+    elif state["step"] == "awaiting_photo":
         await message.reply("❗ Please send a photo, not text.")
 
-@app.on_message(filters.private & filters.photo)
+@app.on_message(filters.private & filters.photo & in_posting_flow)
 async def handle_photo(client, message: Message):
     user_id = message.from_user.id
     state = user_states.get(user_id)
 
-    if state and state.get("step") == "awaiting_photo":
-        description = state.get("description")
-        public_channel = state.get("public_channel")
-
+    if state["step"] == "awaiting_photo":
         await client.send_photo(
-            chat_id=public_channel,
+            chat_id=state["public_channel"],
             photo=message.photo.file_id,
-            caption=description
+            caption=state["description"]
         )
-
         await message.reply("✅ Your post has been sent to the public channel!")
         user_states.pop(user_id)
