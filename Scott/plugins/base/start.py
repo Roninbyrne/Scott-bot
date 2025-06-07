@@ -1,17 +1,14 @@
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
-
-import config
 from Scott import app
-from Scott.plugins.base.logging_toggle import is_logging_enabled
 from Scott.core.mongo import global_userinfo_db
+from config import SUPPORT_CHAT, SUPPORT_CHANNEL, START_VIDEO
+from Scott.plugins.base.logging_toggle import is_logging_enabled
 from config import LOGGER_ID
-
 
 @app.on_message(filters.command("start") & filters.private)
 async def start_pm(client, message: Message):
     user = message.from_user
-
     userinfo = {
         "_id": user.id,
         "first_name": user.first_name,
@@ -34,21 +31,25 @@ async def start_pm(client, message: Message):
 
     text = (
         f"<b>нєу {user.first_name}.\n"
-        f"๏ ɪᴍ 𝗪ᴇʀᴇᴡᴏʟꜰ 花 子 — ᴀ ᴍᴜʟᴛɪ-ᴘʟᴀʏᴇʀ ɢᴀᴍᴇ ʙᴏᴛ ʙᴀꜱᴇᴅ ᴏɴ ᴛʜᴇ ᴄʟᴀꜱꜱɪᴄ ᴡᴇʀᴇᴡᴏʟꜰ ɢᴀᴍᴇ.\n"
-        f"๏ ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ꜱᴛᴀʀᴛᴇᴅ ᴏʀ ꜱᴇᴇ ᴄᴏᴍᴍᴀɴᴅꜱ.</b>"
+        f"๏ ɪᴍ 𝗪ᴇʀᴇᴡᴏʟꜰ 花 子 — ᴀ ᴍᴜʟᴛɪ-ᴘʟᴀʏᴇʀ ɢᴀᴍᴇ ʙᴏᴛ.\n"
+        f"๏ ᴛᴀᴘ ᴛʜᴇ ʙᴜᴛᴛᴏɴꜱ ʙᴇʟᴏᴡ ᴛᴏ ɢᴇᴛ ꜱᴛᴀʀᴛᴇᴅ.</b>"
     )
 
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("➕ Add Me To Group ➕", url=f"https://t.me/{app.me.username}?startgroup=true")],
         [
-            InlineKeyboardButton("Support Chat", url=config.SUPPORT_CHAT),
-            InlineKeyboardButton("Support Channel", url=config.SUPPORT_CHANNEL)
+            InlineKeyboardButton("Support Chat", url=SUPPORT_CHAT),
+            InlineKeyboardButton("Support Channel", url=SUPPORT_CHANNEL)
         ],
-        [InlineKeyboardButton("📚 Help", callback_data="help_menu"), InlineKeyboardButton("🧾 Commands", callback_data="command_menu")]
+        [
+            InlineKeyboardButton("📚 Help", callback_data="help_menu"),
+            InlineKeyboardButton("🧾 Commands", callback_data="command_menu")
+        ],
+        [InlineKeyboardButton("🔍 Search", callback_data="search_user_status")]
     ])
 
     await message.reply(
-        f"{text}\n\n<a href='{config.START_VIDEO}'>๏ ʟᴇᴛ'ꜱ ʙᴇɢɪɴ ᴛʜᴇ ʜᴜɴᴛ! 🐺</a>",
+        f"{text}\n\n<a href='{START_VIDEO}'>๏ ʟᴇᴛ'ꜱ ʙᴇɢɪɴ ᴛʜᴇ ʜᴜɴᴛ! 🐺</a>",
         reply_markup=keyboard
     )
 
