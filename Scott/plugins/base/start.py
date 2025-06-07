@@ -44,8 +44,7 @@ async def start_pm(client, message: Message):
             InlineKeyboardButton("Support Chat", url=config.SUPPORT_CHAT),
             InlineKeyboardButton("Support Channel", url=config.SUPPORT_CHANNEL)
         ],
-        [InlineKeyboardButton("📚 Help and Commands", callback_data="help_menu")],
-        [InlineKeyboardButton("🧾 Commands", callback_data="command_menu")]
+        [InlineKeyboardButton("📚 Help", callback_data="help_menu"), InlineKeyboardButton("🧾 Commands", callback_data="command_menu")]
     ])
 
     await message.reply(
