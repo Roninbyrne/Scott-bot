@@ -10,7 +10,7 @@ class InPostingFlow(Filter):
     def __init__(self):
         super().__init__()
 
-    async def __call__(self, _, __, message):
+    async def __call__(self, client, message):
         user_id = message.from_user.id
         state = user_states.get(user_id)
         return state and state.get("step") in ["awaiting_description", "awaiting_photo"]
