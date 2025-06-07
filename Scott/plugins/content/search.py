@@ -1,7 +1,7 @@
 from pyrogram import filters
 from pyrogram.types import CallbackQuery
 from Scott import app
-from Scott.core.mongo import session_db, register_db
+from Scott.core.mongo import session_db, register_data_db
 
 @app.on_callback_query(filters.regex("search_user_status"))
 async def search_user_status(client, callback_query: CallbackQuery):
@@ -13,7 +13,7 @@ async def search_user_status(client, callback_query: CallbackQuery):
             "❌ You are not logged in. Please log in first using your Login ID."
         )
 
-    register_data = await register_db.find_one({"_id": user_id})
+    register_data = await register_data_db.find_one({"_id": user_id})
     if not register_data:
         return await callback_query.message.edit_text(
             "⚠️ Registration data not found. Please complete your setup."
