@@ -1,10 +1,11 @@
 from pyrogram import filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message, CallbackQuery
 from Scott import app
-from Scott.core.mongo import global_userinfo_db
+from Scott.core.mongo import global_userinfo_db, video_channels_collection
 from config import SUPPORT_CHAT, SUPPORT_CHANNEL, START_VIDEO
 from Scott.plugins.base.logging_toggle import is_logging_enabled
 from config import LOGGER_ID
+import asyncio
 
 @app.on_message(filters.command("start") & filters.private)
 async def start_pm(client, message: Message):
@@ -32,7 +33,7 @@ async def start_pm(client, message: Message):
 
     if len(args) > 1 and args[1].startswith("vid_"):
         video_id = args[1][4:]
-        video_info = await client.db.video_channels_collection.find_one({"video_id": video_id})
+        video_info = await video_channels_collection.find_one({"video_id": video_id})
         if video_info:
             private_channel = video_info.get("private_channel")
             try:
