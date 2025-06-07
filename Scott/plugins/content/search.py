@@ -13,7 +13,13 @@ async def search_user_status(client, callback_query: CallbackQuery):
             "❌ You are not logged in. Please log in first using your Login ID."
         )
 
-    register_data = await register_data_db.find_one({"_id": user_id})
+    login_id = session.get("login_id")
+    if not login_id:
+        return await callback_query.message.edit_text(
+            "⚠️ Login ID not found in session. Please log in again."
+        )
+
+    register_data = await register_data_db.find_one({"_id": login_id})
     if not register_data:
         return await callback_query.message.edit_text(
             "⚠️ Registration data not found. Please complete your setup."
