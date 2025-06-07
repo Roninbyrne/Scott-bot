@@ -42,7 +42,10 @@ async def search_user_status(client, callback_query: CallbackQuery):
     await callback_query.message.edit_text(text)
 
     if public_channel:
-        await callback_query.message.reply("📝 Please send the description you'd like to post.")
+        await client.send_message(
+            chat_id=user_id,
+            text="📝 Please send the description you'd like to post."
+        )
         user_states[user_id] = {
             "step": "awaiting_description",
             "public_channel": public_channel
@@ -51,8 +54,8 @@ async def search_user_status(client, callback_query: CallbackQuery):
 @app.on_message(filters.private & filters.text)
 async def handle_description(client, message: Message):
     user_id = message.from_user.id
-
     state = user_states.get(user_id)
+
     if state and state.get("step") == "awaiting_description":
         user_states[user_id]["description"] = message.text
         user_states[user_id]["step"] = "awaiting_photo"
